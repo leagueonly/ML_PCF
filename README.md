@@ -10,4 +10,4 @@
 
 * Data file "pcf_modeSoln_data_1.xlsx" is for training the model and "pcf_modeSoln_data_manual_1.xlsx" is for testing the model.
 
-* One previously saved model weights file "checkpoint_5000.pth" is also provided. Main code file (pcf_modeSoln_pytorch_1.py) needs to be changed at respective position, if you donot want to use this already saved weights file. Test test
+* One previously saved model weights file "checkpoint_5000.pth" is also provided. Main code file (pcf_modeSoln_pytorch_1.py) needs to be changed at respective position, if you donot want to use this already saved weights file. 
