@@ -1,40 +1,43 @@
-#%% import libraries
 import time
 start_time = time.time()
-print('start_time: ', start_time)
+# print('start_time: ', start_time)
+
+
 import PySimpleGUI as sg
 
-
 import matplotlib
-# matplotlib.use('tkAgg')
+matplotlib.use('TkAgg')
+from matplotlib.backends.backend_tkagg import FigureCanvasAgg
+import matplotlib.backends.tkagg as tkagg
+import tkinter as Tk
+
+
+import numpy as np
 import matplotlib.pyplot as plt
-# from matplotlib.backends.backend_tkagg import FigureCanvasAgg 
-# import matplotlib.backends.tkagg as tkagg # (Do not do it here. DO it in preference)
-import numpy as np # for array operations
 import math
-import pandas as pd # for data manipulation and analysis: spreedsheet, data maniputaion, I/O, excel
-
-
-#  sklearn: for building and evaluating machine learning models: Clutering, dimentionality reduction, regression, classification
-# from sklearn.neural_network import MLPRegressor
-from sklearn.preprocessing import MinMaxScaler # it is used to scale features to a specific range, typically between 0 and 1.
+import pandas as pd
+from sklearn.neural_network import MLPRegressor
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error
 from sklearn.utils import shuffle
 from sklearn.model_selection import train_test_split
-# import sys
-# import pickle
+import sys
+import pickle
+import torch
+from torch import nn, optim
+from torchvision import transforms
+from collections import OrderedDict
 
 
-import torch #pytorch: building and training neural networks, performing tensor computations, and developing machine learning models
-from torch import nn, optim #  nn and optim are two important modules for building and training neural networks
-# torch.nn (nn): This module contains a variety of classes and functions for constructing and training neural networks.
-# torch.optim (optim): This module provides various optimization algorithms to update the parameters of the model during training. 
-# from torchvision import transforms
-
-from collections import OrderedDict #provides alternatives to the built-in data types and data structures
 
 
-#%% import data using panda & prepare data using sklearn
+
+# Use GPU if it's available
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(device)
+
+
+
 ## Transforms features by scaling each feature to a given range.
 ## This estimator scales and translates each feature individually such that it is in the given range on the training set, i.e. between zero and one.
 ## This transformation is often used as an alternative to zero mean, unit variance scaling.
@@ -42,15 +45,16 @@ from collections import OrderedDict #provides alternatives to the built-in data 
 ## transform(X)	Scaling features of X according to feature_range.
 ## fit_transform(X[, y])	Fit to data, then transform it.
 ## inverse_transform(X)	Undo the scaling of X according to feature_range.
-
 scaler1 = MinMaxScaler()  
 scaler2 = MinMaxScaler()  
 
+
+
 no_of_output_nodes = 5
 
-df_1 = pd.read_excel('pcf_modeSoln_data_1.xlsx', sheet_name='SiO2-air-rings-5-dBYp-0.7')
+df_1 = pd.read_excel('pcf_modeSoln_data_1.xlsx', sheetname='SiO2-air-rings-5-dBYp-0.7')
 datafile_1 = df_1.values                  ## stored data from xlsx file
-print(datafile_1)
+#print(datafile_1)
 
 ##########    taking data from other sheets    #############
 sheets_names = ['SiO2-air-rings-4-dBYp-0.8', 'SiO2-air-rings-4-dBYp-0.9', 
@@ -60,18 +64,17 @@ sheets_names = ['SiO2-air-rings-4-dBYp-0.8', 'SiO2-air-rings-4-dBYp-0.9',
 # sheets_names = []
 for sheet_name in sheets_names:
     print(sheet_name)
-    df_sheet_name = pd.read_excel('pcf_modeSoln_data_1.xlsx', sheet_name=sheet_name)
+    df_sheet_name = pd.read_excel('pcf_modeSoln_data_1.xlsx', sheetname=sheet_name)
     datafile_sheet_name = df_sheet_name.values                  ## stored data from xlsx file
     #print(datafile_sheet_name)
     #########    combining data from all sheets of excel file    #########
-    datafile_1 = np.concatenate((datafile_1, datafile_sheet_name), axis=0) # Concatenate along axis=0 (vertically)
+    datafile_1 = np.concatenate((datafile_1, datafile_sheet_name), axis=0)
 
 
 print(datafile_1)
 print(len(datafile_1))
 print()
 
-# stop
 
 
 ########   just to see output variable values   ##########
@@ -90,11 +93,12 @@ X = scaler_datafile_1[:,range(0,6)]                 ## input variables columns
 y = scaler_datafile_1[:,range(6,11)]                          ## output variables columns
 
 print(X)
+print()
 print(y)
 
 
-X, y = shuffle(X, y) # shuffle data in pairs
-X_train, X_validation, y_train, y_validation = train_test_split(X, y, test_size = 0.1) # 10% for validation
+X, y = shuffle(X, y)
+X_train, X_validation, y_train, y_validation = train_test_split(X, y, test_size = 0.1)
 X_train = X_train.reshape(-1, 6)                                ## 2nd column value is = no. of input variables columns
 y_train = y_train.reshape(-1, no_of_output_nodes)               ## 2nd column value is = no. of output variables columns
 X_validation = X_validation.reshape(-1, 6)                      ## 2nd column value is = no. of input variables columns
@@ -102,8 +106,9 @@ y_validation = y_validation.reshape(-1, no_of_output_nodes)     ## 2nd column va
 print('no. of training points: ', len(X_train))
 print('no. of validation points: ', len(X_validation))
 
+
 ###########     manual testing    #########
-df_2 = pd.read_excel('pcf_modeSoln_data_manual_1.xlsx', sheet_name='Sheet1')
+df_2 = pd.read_excel('pcf_modeSoln_data_manual_1.xlsx', sheetname='Sheet1')
 datafile_2 = df_2.values                  ## stored data from xlsx file
 print(datafile_2)
 scaler_datafile_2 = scaler1.transform(datafile_2)
@@ -113,18 +118,19 @@ print(X_test)
 print()
 print(y_test)
 print('no. of test points: ', len(X_test))
-print('shape of X-_test: ', X_test.shape)
-
 X_test = X_test.reshape(-1, 6)                      ## 2nd column value is = no. of input variables columns
 y_test = y_test.reshape(-1, no_of_output_nodes)     ## 2nd column value is = no. of output variables columns
-#%% Create the neuronetwork using pytorch
-# Use GPU if it's available
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(device)
+###########################################
+
+
+
+
+
 
 
 input_dim = 6                                       ## = no. of input variables columns
 output_dim = no_of_output_nodes                     ## = no. of output variables columns
+from collections import OrderedDict
 
 
 # ############     model without dropout     #####################
@@ -162,7 +168,6 @@ model = nn.Sequential(OrderedDict([
                         ('fc4', nn.Linear(nodes_hidden_3, output_dim)),
                         ]))
 
-fc1_layer = model.fc1  # Accesses the layer with name 'fc1'
 
 
 # ############     model with dropout - 2 layers     #####################
@@ -193,16 +198,16 @@ print(X_train.shape, y_train.shape)
 
 criterion = nn.MSELoss()
 learning_rate = 0.0001
-optimizer = optim.Adam(model.parameters(), lr=learning_rate) # use adam optimization to optimize all parameters
+optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
 print(device)
 ## move model to gpu if available, else cpu
 # model.to(device)
 
 
-#%% Convert the  train data to tensor and train the model
 
-epochs = 1000
+
+epochs = 5000
 # Convert numpy array to torch Variable
 # inputs = torch.from_numpy(X_train).requires_grad_()
 # labels = torch.from_numpy(y_train)
@@ -219,15 +224,15 @@ for epoch in range(epochs):
     model.train()    # prep model for training
     # Clear gradients w.r.t. parameters, else gradients will be added up with every previous pass
     optimizer.zero_grad() 
-    # Step1: Forward to get output
+    # Forward to get output
     outputs = model(inputs)
-    #  Step2: Calculate Loss
+    # Calculate Loss
     loss = criterion(outputs, labels)       ## mean squared error
-    #  Step3: Getting gradients w.r.t. parameters
+    # Getting gradients w.r.t. parameters
     loss.backward()
-    #  Step4: Updating parameters
+    # Updating parameters
     optimizer.step()         ## take a step with optimizer to update the weights
-    running_loss.append(loss.item()) # .item() converts the tensor to a scaler (number)
+    running_loss.append(loss.item())
 
     
     
@@ -253,27 +258,30 @@ for epoch in range(epochs):
     # print(mean_squared_error(outputs_validation,labels_validation))
 
 
-    # save the model, as weights & parameters are stored in model.state_dict()
-    if (epoch == 1000):
-        torch.save(model.state_dict(), 'checkpoint_1000.pth')
-    elif (epoch == 2500):
-        torch.save(model.state_dict(), 'checkpoint_2500.pth')
-    elif (epoch == 5000):
-        torch.save(model.state_dict(), 'checkpoint_5000.pth')        
-    elif (epoch == 7500):
-        torch.save(model.state_dict(), 'checkpoint_7500.pth')        
-    elif (epoch == 10000):
-        torch.save(model.state_dict(), 'checkpoint_10000.pth')        
-    elif (epoch == 12500):
-        torch.save(model.state_dict(), 'checkpoint_12500.pth')        
-    elif (epoch == 15000):
-        torch.save(model.state_dict(), 'checkpoint_15000.pth')        
+
+    # if (epoch == 1000):
+    #     torch.save(model.state_dict(), 'checkpoint_1000.pth')
+    # elif (epoch == 2500):
+    #     torch.save(model.state_dict(), 'checkpoint_2500.pth')
+    # elif (epoch == 5000):
+    #     torch.save(model.state_dict(), 'checkpoint_5000.pth')        
+    # elif (epoch == 7500):
+    #     torch.save(model.state_dict(), 'checkpoint_7500.pth')        
+    # elif (epoch == 10000):
+    #     torch.save(model.state_dict(), 'checkpoint_10000.pth')        
+    # elif (epoch == 12500):
+    #     torch.save(model.state_dict(), 'checkpoint_12500.pth')        
+    # elif (epoch == 15000):
+    #     torch.save(model.state_dict(), 'checkpoint_15000.pth')        
+
    
- # print(model.state_dict().keys())
- # print(model.state_dict())
 
 
-#### save data: torch.save(model.state_dict(), 'checkpoint-epochs-{}.pth'.format(epochs))
+
+# save the model, as weights & parameters are stored in model.state_dict()
+# print(model.state_dict().keys())
+# print(model.state_dict())
+#### torch.save(model.state_dict(), 'checkpoint-epochs-{}.pth'.format(epochs))
 torch.save(model.state_dict(), 'checkpoint.pth')
 # # load the saved model at particular epochs to compare
 state_dict = torch.load('checkpoint_5000.pth')
@@ -282,6 +290,8 @@ state_dict = torch.load('checkpoint_5000.pth')
 # state_dict = torch.load('checkpoint.pth')
 # state_dict = torch.load('checkpoint-simple_waveguide_neff_pytorch_1_epochs-5000.pth')
 model.load_state_dict(state_dict)
+
+
 
 
 
@@ -302,13 +312,24 @@ with torch.no_grad():
 
 end_time = time.time()
 print('end_time: ', end_time)
-print('time taken to train in sec: ', (end_time - start_time)) # finish training
-#%% Postprocessing (import matplotlib.pyplot as plt)
+print('time taken to train in sec: ', (end_time - start_time))
+
+
+
+
+
+
+
+
+
 
 ## make axis bold
-plt.rcParams.update({'font.size': 6})
+plt.rcParams.update({'font.size': 10})
 plt.rcParams["font.weight"] = "bold"
 plt.rcParams["axes.labelweight"] = "bold"
+
+
+
 
 mse_training_interval = 10
 mse_validation_interval = 10
@@ -317,24 +338,29 @@ running_loss_index = [i for i in range(1, epochs, mse_training_interval)]
 running_loss_validation = running_loss_validation[::mse_validation_interval]
 running_loss_validation_index = [i for i in range(1, epochs, mse_validation_interval)]
 print('mse lengths: ', len(running_loss), len(running_loss_validation))
-print('running_loss_index: ', running_loss_index)
-print('running_loss_validation_index: ', running_loss_validation_index)
+# print('running_loss_index: ', running_loss_index)
+# print('running_loss_validation_index: ', running_loss_validation_index)
 
-#%%
+
+
+
+
+
 ###############################################################
 #################   plotting graphs together - neff  ################
 ###############################################################
 
 plt.figure()
-plt.suptitle('pcf - neff - (epochs-{}) - pyTorch'.format(epochs), fontsize=15, color='r', fontweight='bold')     ## giving title on top of all subplots
-plt.subplot(231) # loss vs epoch
+plt.suptitle('pcf - neff - (epochs-{}) - pyTorch'.format(epochs), fontsize=25, 
+                color='r', fontweight='bold')     ## giving title on top of all subplots
+
+
+plt.subplot(231)
 plt.plot(running_loss_index, running_loss, 'r-', linewidth=3, label='mse_loss_train')
-plt.plot(running_loss_validation_index, running_loss_validation, 'b--', linewidth=3, label='mse_loss_validation')
+plt.plot(running_loss_validation_index, running_loss_validation, 'b-', linewidth=3, label='mse_loss_validation')
 plt.legend(loc='best', fontsize=10)
 plt.xlabel('epochs#', fontsize=15)
-plt.show()  # This line is needed to display the plot.
 
-# stop
 
 # plt.figure()
 plt.subplot(232)
@@ -380,9 +406,9 @@ plt.xlim(bubble_plot_line_x1y1[0], bubble_plot_line_x1y1[1])
 plt.ylim(bubble_plot_line_x1y1[0], bubble_plot_line_x1y1[1])
 plt.plot(bubble_plot_line_x1y1, bubble_plot_line_x2y2, 'k-', linewidth=2)
 plt.grid(linestyle='--', linewidth=1)
-plt.scatter(xx, yy, label='train', marker='o', facecolors='none', edgecolors='red', s=50)
-plt.scatter(xx_validation, yy_validation, label='validation', marker='o', facecolors='none', edgecolors='blue', s=50)
-plt.scatter(xx_test, yy_test, label='test', marker='o', facecolors='none', edgecolors='black', s=50)
+plt.scatter(xx, yy, label='train', marker='o', facecolors='', edgecolors='red', s=50)
+plt.scatter(xx_validation, yy_validation, label='validation', marker='o', facecolors='', edgecolors='blue', s=50)
+plt.scatter(xx_test, yy_test, label='test', marker='o', facecolors='', edgecolors='black', s=50)
 plt.legend(loc='best', fontsize=10)
 plt.xlabel('true-values', fontsize=15)
 plt.ylabel('predicted', fontsize=15)
@@ -407,7 +433,7 @@ print("mse_test_set: ", mean_squared_error(y_test, predicted_on_X_test))
 
 
 
-#%%
+
 ###############################################################
 #################   plotting graphs together - Aeff  ################
 ###############################################################
@@ -468,9 +494,9 @@ plt.xlim(bubble_plot_line_x1y1[0], bubble_plot_line_x1y1[1])
 plt.ylim(bubble_plot_line_x1y1[0], bubble_plot_line_x1y1[1])
 plt.plot(bubble_plot_line_x1y1, bubble_plot_line_x2y2, 'k-', linewidth=2)
 plt.grid(linestyle='--', linewidth=1)
-plt.scatter(xx, yy, label='train', marker='o', facecolors='none', edgecolors='red', s=50)
-plt.scatter(xx_validation, yy_validation, label='validation', marker='o', facecolors='none', edgecolors='blue', s=50)
-plt.scatter(xx_test, yy_test, label='test', marker='o', facecolors='none', edgecolors='black', s=50)
+plt.scatter(xx, yy, label='train', marker='o', facecolors='', edgecolors='red', s=50)
+plt.scatter(xx_validation, yy_validation, label='validation', marker='o', facecolors='', edgecolors='blue', s=50)
+plt.scatter(xx_test, yy_test, label='test', marker='o', facecolors='', edgecolors='black', s=50)
 plt.legend(loc='best', fontsize=10)
 plt.xlabel('true-values', fontsize=15)
 plt.ylabel('predicted', fontsize=15)
@@ -516,13 +542,11 @@ print("mse_test_set: ", mean_squared_error(y_test, predicted_on_X_test))
 # # sys.exit()
 # ####################################################################################################
 
-#%%
-
 ###############################################################
 #################   plotting graphs together - disp  ################
 ###############################################################
 
-fig21= plt.figure(21)
+plt.figure()
 plt.suptitle('pcf - disp - (epochs-{}) - pyTorch'.format(epochs), fontsize=25, 
                 color='r', fontweight='bold')     ## giving title on top of all subplots
 
@@ -578,9 +602,9 @@ plt.xlim(bubble_plot_line_x1y1[0], bubble_plot_line_x1y1[1])
 plt.ylim(bubble_plot_line_x1y1[0], bubble_plot_line_x1y1[1])
 plt.plot(bubble_plot_line_x1y1, bubble_plot_line_x2y2, 'k-', linewidth=2)
 plt.grid(linestyle='--', linewidth=1)
-plt.scatter(xx, yy, label='train', marker='o', facecolors='none', edgecolors='red', s=50)
-plt.scatter(xx_validation, yy_validation, label='validation', marker='o', facecolors='none', edgecolors='blue', s=50)
-plt.scatter(xx_test, yy_test, label='test', marker='o', facecolors='none', edgecolors='black', s=50)
+plt.scatter(xx, yy, label='train', marker='o', facecolors='', edgecolors='red', s=50)
+plt.scatter(xx_validation, yy_validation, label='validation', marker='o', facecolors='', edgecolors='blue', s=50)
+plt.scatter(xx_test, yy_test, label='test', marker='o', facecolors='', edgecolors='black', s=50)
 plt.legend(loc='best', fontsize=10)
 plt.xlabel('true-values', fontsize=15)
 plt.ylabel('predicted', fontsize=15)
@@ -591,8 +615,9 @@ plt.subplot(236)
 true_values = scaler2.inverse_transform(y_test)[:,2]
 predicted_values = scaler2.inverse_transform(predicted_on_X_test)[:,2]
 x_index = [i for i in range(len(true_values))]
-error_values = np.abs(predicted_values - true_values)
-plt.errorbar(x=x_index, y=true_values, yerr=error_values, fmt='o', color='black', ecolor='black', elinewidth=2, capsize=10);
+error_values = predicted_values - true_values
+plt.errorbar(x=x_index, y=true_values, yerr=error_values, fmt='o', color='black', 
+                    ecolor='black', elinewidth=2, capsize=10);
 plt.grid(linestyle='--', linewidth=1)
 
 
@@ -667,9 +692,9 @@ plt.xlim(bubble_plot_line_x1y1[0], bubble_plot_line_x1y1[1])
 plt.ylim(bubble_plot_line_x1y1[0], bubble_plot_line_x1y1[1])
 plt.plot(bubble_plot_line_x1y1, bubble_plot_line_x2y2, 'k-', linewidth=2)
 plt.grid(linestyle='--', linewidth=1)
-plt.scatter(xx, yy, label='train', marker='o', facecolors='none', edgecolors='red', s=50)
-plt.scatter(xx_validation, yy_validation, label='validation', marker='o', facecolors='none', edgecolors='blue', s=50)
-plt.scatter(xx_test, yy_test, label='test', marker='o', facecolors='none', edgecolors='black', s=50)
+plt.scatter(xx, yy, label='train', marker='o', facecolors='', edgecolors='red', s=50)
+plt.scatter(xx_validation, yy_validation, label='validation', marker='o', facecolors='', edgecolors='blue', s=50)
+plt.scatter(xx_test, yy_test, label='test', marker='o', facecolors='', edgecolors='black', s=50)
 plt.legend(loc='best', fontsize=10)
 plt.xlabel('true-values', fontsize=15)
 plt.ylabel('predicted', fontsize=15)
@@ -756,9 +781,9 @@ plt.xlim(bubble_plot_line_x1y1[0], bubble_plot_line_x1y1[1])
 plt.ylim(bubble_plot_line_x1y1[0], bubble_plot_line_x1y1[1])
 plt.plot(bubble_plot_line_x1y1, bubble_plot_line_x2y2, 'k-', linewidth=2)
 plt.grid(linestyle='--', linewidth=1)
-plt.scatter(xx, yy, label='train', marker='o', facecolors='none', edgecolors='red', s=50)
-plt.scatter(xx_validation, yy_validation, label='validation', marker='o', facecolors='none', edgecolors='blue', s=50)
-plt.scatter(xx_test, yy_test, label='test', marker='o', facecolors='none', edgecolors='black', s=50)
+plt.scatter(xx, yy, label='train', marker='o', facecolors='', edgecolors='red', s=50)
+plt.scatter(xx_validation, yy_validation, label='validation', marker='o', facecolors='', edgecolors='blue', s=50)
+plt.scatter(xx_test, yy_test, label='test', marker='o', facecolors='', edgecolors='black', s=50)
 plt.legend(loc='best', fontsize=10)
 plt.xlabel('true-values', fontsize=15)
 plt.ylabel('predicted', fontsize=15)
@@ -781,6 +806,11 @@ print("o/p of test set:           \n", (scaler2.inverse_transform(y_test)[:,4]))
 print("predicted o/p of test set: \n", (scaler2.inverse_transform(predicted_on_X_test)[:,4]))
 print("mse_test_set: ", mean_squared_error(y_test, predicted_on_X_test))
 print()
+
+
+
+
+
 
 
 ###############################################################
@@ -839,7 +869,13 @@ plt.title('conf-loss-with-log10', fontsize=25)
 # ####################################################################################################
 
 
+
 plt.show()
+
+
+
+
+
 
 
 ###########    saving predicted data to excel file   ##############
@@ -861,6 +897,9 @@ df.to_excel(filepath, sheet_name='sheet1', index=False)
 
 
 # sys.exit()
+
+
+
 
 ##########################################
 #######           GUI           ##########
